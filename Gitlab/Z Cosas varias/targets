@@ -1,0 +1,18 @@
+
+
+Primero pasar azureus a worker
+
+docker node update manager-azureus --role worker
+
+Verificamos que se haya liberado la memoria
+df -h
+
+Stop del contenedor
+
+Iniciamos el contenedor
+
+docker node update manager-azureus --role manager --availability drain
+
+Para encontrar un errore en la celery
+
+HTTPError: 400 Client Error: Bad Request for url: https://hook.integromat.com:443/iasiwzp66an1kefjwbggb3fs3ledzfwi

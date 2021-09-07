@@ -1,0 +1,38 @@
+network:
+    version: 2
+    renderer: networkd
+    ethernets:
+        enp61s0f0:
+          match:
+            macaddress: a0:42:3f:3a:f7:76
+          set-name: enp61s0f0
+          mtu: 9000
+        enp61s0f1:
+          match:
+            macaddress: a0:42:3f:3a:f7:77
+          set-name: enp61s0f1
+          mtu: 9000
+    bonds:
+        bond0:
+          mtu: 9000
+          dhcp4: false
+          dhcp6: false
+          interfaces: [ enp61s0f0, enp61s0f1 ]
+          parameters:
+            mode: balance-xor
+            mii-monitor-interval: 100
+    vlans:
+        bond0.170:
+          id: 170
+          link: bond0
+          addresses : [192.168.170.190/24]
+          gateway4: 192.168.170.1
+          nameservers:
+            search: [network.lan]
+            addresses: [192.168.170.100, 192.168.170.101]
+          mtu: 9000
+        bond0.186:
+          id: 186
+          link: bond0
+          addresses: [192.168.186.225/24]
+          mtu: 9000

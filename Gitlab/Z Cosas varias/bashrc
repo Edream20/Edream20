@@ -1,0 +1,19 @@
+# Alias definitions.
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+####### PDU / IPPOWER  ########
+alias ippowersui='ssh -p 54322 -L 11104:10.10.11.104:80 -f -N ebacelar@konn.sui.voipi.com.ar'
+alias ippoweresm='ssh -p 54322 -L 10104:10.10.10.104:80 -f -N ebacelar@fantasma.voipi.com.ar'
+alias pdutac='ssh -p 54322 -L 16251:10.10.16.251:80 -f -N ebacelar@hojarasca.tac.voipi.com.ar'
+alias pdulim='ssh -p 54322 -L 14011:10.10.14.11:80 -L 14012:10.10.14.12:80 -f -N ebacelar@pichu.lim.anura.pe'
+#### Service Host Docker ###
+alias dockerftp='sudo docker run --rm -it -p 21:21 -p 4559-4564:4559-4564 -e FTP_USER=ftp -e FTP_PASSWORD=ftp -v /home/eduu/:/srv/ --name ftpd docker.io/panubo/vsftpd:latest'
+alias dockertftp='sudo docker run --rm -it -p 0.0.0.0:69:69/udp -v /home/eduu/:/var/tftpboot -i -t --name tftp pghalliday/tftp'
+### IPMI Peru LAM/LIM ###
+alias ipmilam='ssh -p 54322 -L 15215:10.10.15.215:443 -L 15216:10.10.15.216:443 -L 15217:10.10.15.217:443 -L 15218:10.10.15.218:443 -L 15219:10.10.15.219:443 -f -N ebacelar@poseidon.lim.anura.pe'
+alias ipmilim='ssh -p 54322 -L 14213:10.10.14.213:443 -L 14209:10.10.14.209:443 -L 14214:10.10.14.214:443 -L 14216:10.10.14.216:443 -L 14217:10.10.14.217:443 -f -N ebacelar@manco.lim.anura.pe'
+#### SWITCH ####
+alias swperulim='ssh -p 54322 -L 14254:10.10.14.254:80 -L 14253:10.10.14.253:80 -f -N ebacelar@titu.lim.anura.pe'
+alias swperulam='ssh -p 54322 -L 14254:10.10.15.254:80 -L 14253:10.10.15.253:80 -f -N ebacelar@poseidon.lim.anura.pe'
+alias swtac='ssh -p 54322 -L 10249:10.10.10.249:80 -L 10250:10.10.10.250:80 -f -N ebacelar@fantasma.voipi.com.ar'
+alias swsui='ssh -p 54322 -L 11249:10.10.11.249:80 -L 11250:10.10.11.250:80 -f -N ebacelar@fantasma.voipi.com.ar'
+

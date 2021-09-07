@@ -1,0 +1,38 @@
+/*********************************
+ * 2015-07-27 (Luis)
+ * - Llaves para TSIG
+ * - Una por cada vista
+ * - Una ACL para todas
+ *********************************/
+
+key "key_argentina" {
+    algorithm hmac-md5;
+    secret "Pwtm4rzVF7xMMHF72n8fvg==";
+};
+
+key "key_peru" {
+    algorithm hmac-md5;
+    secret "ZGSgL+l8I/8VyIdb2uNrEA==";
+};
+
+key "key_resto" {
+    algorithm hmac-md5;
+    secret "soGjpfeWXi6eobtIlim3Jg==";
+};
+
+key "RESTOclientes.grancentral.com.ar" {
+    algorithm hmac-md5;
+    secret "2WIVbbyVPdwXvMtuAtEja15qCFIhpt9nyxjmpX+ThysVSaOk3JBwOI43 1cbQ7K8buyJc3ZvcxnyCcg5m3UVz3w==";
+};
+
+key "ARclientes.grancentral.com.ar" {
+    algorithm hmac-md5;
+    secret "/JC1ze5bzhorjier5EgtuUWVdQHywSu2APQIDWcpJ//D9V9JyowJfdch D+amT5Ia1zKZhf6874XB9Er2Mb+ksA==";
+};
+
+key "PEclientes.grancentral.com.ar" {
+    algorithm hmac-md5;
+    secret "/m/ofSqdasC+daF07XUuzjoqqBvHpkGDZOincmSBBfm8ZEO2b9jIO6g7 M0eJCcPXlbXFGJch4YDpLDu4Zk2cpQ==";
+};
+
+acl all_keys { key key_argentina; key key_peru; key key_resto; key ARclientes.grancentral.com.ar ; key PEclientes.grancentral.com.ar ; key RESTOclientes.grancentral.com.ar; };

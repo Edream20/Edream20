@@ -1,0 +1,159 @@
+Base de datos 
+
+DBGC
+TENANT
+SELECT * from tenats where name like '%Anu%'; <--- Busco Tenantid
+SELECT * from groups where tenantid = 1; <---- Veo los grupos de un tenantid (GRUPOS y Dptos)
+SELECT * from tenantproperties where tenantid = 1; <-----Veo las properties de un tenant
+SELECT * from terminals where accountid = 25451; <---- Veo las terminales de una cuenta 
+SELECT * from recordingaccounting;-
+SELECT * from accounts a inner join terminals t on a.id = t.accountid and a.tenantid = 4100;
+
+SBC
+SELECT * from sbc_2_4.dispatcher where setid = 6 order by priority desc; <--- Veo el setid 6 y lo ordeno por prioridad mas alta
+SELECT * from sbc.viewlocation where domain ilike '%uca%' AND username ilike '%Bele%';
+
+
+Tenantproperties
+INSERT into tenantproperties values (2799, 'bTrunksFallback', 'yes'); <---  Propiedad para habilitar el fallback por Amura
+INSERT into tenantproperties values (2799, 'bTrunksOutEnabled', 'yes'); <--- Habilito las llamadas por troncal
+SELECT * from tenantrouting where tenantid = '2799'; <--- TenantRouting
+UPDATE tenantrouting set trunksoutpricegroupid = 9 where tenantid = '2799'; <--- Cambio el pricegroupid
+
+
+UPDATE routecostelements SET priority = 0 where id = 62555822;
+SELECT routecostid, routecostname, routecostpriority, prefixcomment,prefix,trunkname from viewroutecosts where prefix ilike '001833' and routecostname = 'Rutas Pymes' order by routecostpriority asc;
+
+select * from sbc.ranking where domainname ilike 'argen.gra%' <--- Para ver en que set esta
+
+
+Reload SBC
+root@poseidon:/home/citilan# docker exec -it sbc_opensips_1 /home/gc/local/opensips/sbin/opensipsctl fifo ds_reload
+Ver SBC antes o despues del reload
+root@poseidon:/home/citilan# docker exec -it sbc_opensips_1 /home/gc/local/opensips/sbin/opensipsctl fifo ds_list
+
+
+Para ver una llamada en la gccdrs
+gccdrs=> select * From cdrs_3232 where  dialtime > '2020-06-15 12:25' and direction='IN' and dialtime < '2020-06-15 12:36' and calling ilike '2216%' and called='126';
+para ver el detalle cdrpropertiest
+gccdrs=> select * from cdrpropertiest_3232 where cdrid = 486704562;
+
+###############################
+PARA PONER A GRABAR UN LOCO
+###############################
+
+https://gitlab.sui.voipi.com.ar/devops/DevOpsTasks/-/issues/1070
+
+root@rene:/home/citilan# su - tvoipth2
+tvoipth2@rene:~$ ls
+3775  core.30382.freeswitch.1480446053  freeswitch-src  lawful_recording  local  misc  old_recordings  prueba.wav  scripts  SELECT  src  tmp
+tvoipth2@rene:~$ cd lawful_recording/
+tvoipth2@rene:~/lawful_recording$ ls
+Entrar al sftp
+
+tvoipth2@rene:~/old_recordings$ sftp -oPort=2207 -oBindAddress=200.13.43.111 citilan@190.192.154.64  <---- Conectarse al SFTP
+
+
+#########################################
+#Buscar una llamada por que chip salió
+#########################################
+
+https://gitlab.sui.voipi.com.ar/devops/DevOpsTasks/-/issues/1437
+
+ebacelar@neba:~$ psql -h dbstats.internal -p 5434 caco caco
+-caco@caco=> select * from caco2.fwtcdrs where time > '20200716' and called ~ '18332247';
+
+Para entrar a la pagina de movistar
+
+Buscar correo con el siguiente asunto "Chips Anura SA" alli estan las credenciales
+
+Comandos BGP
+
+sh ip bgp summary
+
+
+###############
+MTP
+###############
+
+https://gitlab.sui.voipi.com.ar/devops/DevOpsTasks/-/issues/1455
+
+Para conectarme a la internal
+
+#######################
+SSH
+#######################
+ssh ebacelar@granota.internal.voipi.com.ar -p54322
+
+
+CHANNEL_DATA
+
+##################################
+INGRESAR ASTERISK
+##################################
+
+Ingresar al rasterisk
+
+Ingresamos al contenedor o en host segun corresonda
+
+cd sbin
+./rasterisk -qm
+
+##################################
+Ingresar a la cli del freeswitch
+##################################
+
+Ingresamos al contenedor as1_freeswitch_1
+
+cd bin
+
+./fs_cli -l0 Entrar a la cli
+
+
+./fs_cli -x "show calls" | grep 1595942737
+
+Para matar una llamada
+
+freeswitch@internal> uuid_kill 820ef6be-d043-11ea-806b-9dc95edd90e3
+
+https://gitlab.sui.voipi.com.ar/devops/DevOpsTasks/-/issues/1512
+
+
+Instartar en la routecost
+
+BEGIN
+INSERT into routecostdummy (routecostname, prefix, prefixcomment, timeframename, value0, fraction0, valuen, fractionn, currencyname, typename, tag, trunkname,  priority)
+SELECT 'Rutas Pymes' as routecostname,
+'0021205' as prefix,
+'Prueba Destino Marruecos' as prefixcomment,
+'Siempre' as timeframename,
+0 as value0,
+60 as fraction0,
+0 as valuen,
+60 as fractionn,
+'U$S' as currencyname,
+'LDI' as typename,
+'' as tag,
+'MV378_RESTO' as trunkname,
+0 as priority
+;
+
+
+Para Cambiar desde el clima un as y modificar el orden del set
+
+Para ver el set
+
+clima as sets -s 3
+
+deactivate = Bajar
+-h = definimos el AS
+-s = numero de set
+-r = hac un reload del sbc
+
+clima as deactivate -h pacman -s 3 -r
+
+activate = subis
+
+clima as activate -h lapras -s 3 -r
+
+

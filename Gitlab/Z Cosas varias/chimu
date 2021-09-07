@@ -1,0 +1,25 @@
+#!/bin/bash
+
+CRIT=$2
+WARN=$4
+INTERFACE=$5
+WANPIPE=wanpipe$(echo $INTERFACE | cut -b 2)
+ACTULCV=$(cat /proc/net/wanrouter/$WANPIPE | grep Line | awk '{print $4}')
+
+#Este check solo verifica y hace saltar la alarma cuando se superaron los umbrales establecidos, a su vez el check_fas_wp es el encargado de reiniciar los contadores una vez a la semana
+
+# Realizo las comparaciones para el status del nagios
+if [ $ACTULCV -gt $CRIT ]; then
+        echo "CRITICAL - LCV Errors on $INTERFACE: $ACTULCV"
+        exit 2
+        elif [ $ACTULCV -ge $WARN ]; then
+                echo "WARNING - LCV Errors on $INTERFACE: $ACTULCV"
+                exit 1
+else
+        echo "OK - LCV Errors on $INTERFACE: $ACTULCV"
+        exit 0
+fi
+
+
+
+

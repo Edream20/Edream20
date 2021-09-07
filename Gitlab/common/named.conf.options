@@ -1,0 +1,80 @@
+/*********************************
+ * 2015-09-17 (Luis)
+ * - Opciones default
+ *   Usando ACLs, sin IPs en este
+ *   archivo
+ * - Notify no
+ * - Directorio de GeoIP DB
+ * - Opciones de logging
+ * - Blacklist usando ACL
+ *********************************/
+
+options {
+	directory "/var/cache/bind";
+
+	// If there is a firewall between you and nameservers you want
+	// to talk to, you may need to fix the firewall to allow multiple
+	// ports to talk.  See http://www.kb.cert.org/vuls/id/800113
+
+	// If your ISP provided one or more IP addresses for stable 
+	// nameservers, you probably want to use them as forwarders.  
+	// Uncomment the following block, and insert the addresses replacing 
+	// the all-0's placeholder.
+
+	forwarders {
+		8.8.8.8;
+		8.8.4.4;
+	};
+
+	//========================================================================
+	// If BIND logs error messages about the root key being expired,
+	// you will need to update your keys.  See https://www.isc.org/bind-keys
+	//========================================================================
+	dnssec-validation auto;
+
+	auth-nxdomain no;    # conform to RFC1035
+	listen-on-v6 { none; }; # Apagamos IPv6
+	listen-on { local-binding; };
+
+	// Query defaults para Anura
+
+	allow-query { anura-hosts; };
+	allow-recursion { anura-hosts; };
+
+	// Transfer y notify defaults para Anura
+	// Las vistas deben sobreescribir esto, es solo una medida de seguridad
+
+	allow-transfer { anura-hosts; };   // ACL hosts de anura
+	notify no;                   // Por defecto no notifica, lo maneja la vista
+
+        // Base de datos de GeoIP
+
+        geoip-directory "/usr/share/GeoIP/";
+
+	// Blackhole de IPs y Redes de attackers
+
+	blackhole { blacklisted-hosts; };
+
+        // Disable version
+        version "Not supported";
+};
+
+// Custom logging de Anura
+
+logging{
+        channel simple_log {
+                file "/var/log/bind/bind.log" versions 10 size 5m;
+                severity debug;
+                print-time yes;
+                print-severity yes;
+                print-category yes;
+        };
+        category default { simple_log; };
+
+        channel b_query {
+                file "/var/log/bind/query.log" versions 5 size 50m;
+                print-time yes;
+                severity info;
+        };
+        category queries { b_query; };
+};

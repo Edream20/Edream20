@@ -1,0 +1,175 @@
+/*********************************************
+ * 2016-11-21 (Luis)
+ * - Clausula masters para definir los servers
+ *   para usar en masters en cada zona esclava 
+ *   por cada vista
+ *   NOTA: No olvidar usar servers <ip>
+ *         y poner la llave a cada uno
+ * - Listas de geoip por pais para las vistas
+ *   NOTA: Debe estar instalado GeoIP MaxMind
+ * - Lista de acceso para los hosts de Anura
+ *   para usar por defecto como allow queries
+ *   y allow recursive.
+ * - Lista de redes para blacklist
+ *   Agrego las redes filtradas en el router
+ *   principalmente para los cloud dns
+ *   (revisar? / actualizar? / source?)
+ *********************************************/
+
+masters master-servers {
+    // India master principal
+   // 10.10.11.20;
+    200.13.43.20;
+    // Neba master de backup
+    //10.10.10.26;
+    200.13.42.26;
+};
+
+acl AR {
+    // Pais Argentina
+    geoip country AR;
+};
+
+acl PE {
+    // Pais Peru
+    geoip country PE;
+};
+
+acl anura-hosts {
+    // Localhost
+    localhost;
+    // Local oficina e internals sumarizadas
+    192.168.0.1/23;
+    10.10.0.0/16;
+    // Rangos de Anura
+    200.13.42.0/23;
+    179.0.14.0/24;
+    200.33.82.0/24;
+    // TASA ESM y SUI
+    186.38.20.48/28;
+    186.56.20.176/28;
+    // IPLAN ESM y SUI
+    190.210.2.208/29;
+    190.210.84.192/29;
+    // TDP los dos rangos
+    200.107.148.144/28;
+    181.65.235.200/29;
+    // TECO ROS y CBA
+    186.153.136.224/27;
+    186.153.137.224/27;
+    // Cloud Amazon y Google
+    52.7.155.54;
+    104.197.94.116;
+    // YACHAY
+    209.45.18.0/24;
+};
+
+acl anura-hosts-ar {
+    // Local oficina e internals sumarizadas
+    192.168.0.1/23;
+    10.10.10.0/24;
+    10.10.11.0/24;
+    10.10.12.0/24;
+    10.10.13.0/24;
+    10.10.16.0/24;
+    // Rangos de Anura
+    200.13.42.0/23;
+    200.33.82.0/24;
+    // TASA ESM y SUI
+    186.38.20.48/28;
+    186.56.20.176/28;
+    // IPLAN ESM y SUI
+    190.210.2.208/29;
+    190.210.84.192/29;
+    // TECO ROS y CBA
+    186.153.136.224/27;
+    186.153.137.224/27;
+    // Cloud Amazon y Google
+    52.7.155.54;
+    104.197.94.116;
+};
+
+acl ecs-anura-hosts-ar {
+    // Local oficina e internals sumarizadas
+    ecs 192.168.0.1/23;
+    ecs 10.10.10.0/24;
+    ecs 10.10.11.0/24;
+    ecs 10.10.12.0/24;
+    ecs 10.10.13.0/24;
+    ecs 10.10.16.0/24;
+    // Rangos de Anura
+    ecs 200.13.42.0/23;
+    ecs 200.33.82.0/24;
+    // TASA ESM y SUI
+    ecs 186.38.20.48/28;
+    ecs 186.56.20.176/28;
+    // IPLAN ESM y SUI
+    ecs 190.210.2.208/29;
+    ecs 190.210.84.192/29;
+    // TECO ROS y CBA
+    ecs 186.153.136.224/27;
+    ecs 186.153.137.224/27;
+    // Cloud Amazon y Google
+    ecs 52.7.155.54;
+    ecs 104.197.94.116;
+};
+
+acl anura-hosts-pe {
+    // internals
+    10.10.14.0/24;
+    10.10.15.0/24;
+    // Rangos de Anura
+    179.0.14.0/24;
+    // TDP los dos rangos
+    200.107.148.144/28;
+    181.65.235.200/29;
+    209.45.18.0/24;
+};
+
+acl ecs-anura-hosts-pe {
+    // internals
+    ecs 10.10.14.0/24;
+    ecs 10.10.15.0/24;
+    // Rangos de Anura
+    ecs 179.0.14.0/24;
+    // TDP los dos rangos
+    ecs 200.107.148.144/28;
+    ecs 181.65.235.200/29;
+    ecs 209.45.18.0/24;
+};
+
+acl blacklisted-hosts {
+    61.220.8.0/24;
+    61.220.9.0/24;
+    168.95.192.0/24;
+    72.167.0.0/16;
+    74.208.0.0/16;
+    79.136.0.0/17;
+    80.12.255.0/26;
+    72.167.0.0/16;
+    74.208.0.0/16;
+    79.136.0.0/17;
+    80.12.255.0/26;
+    81.169.128.0/17;
+    81.88.48.0/20;
+    82.139.0.0/19;
+    85.236.32.0/19;
+    96.9.128.0/18;
+    79.98.24.0/22;
+    178.16.32.0/20;
+    83.136.112.0/21;
+    76.96.0.0/17;
+    124.153.64.0/17;
+    83.136.112.0/21;
+    76.96.0.0/17;
+    124.153.64.0/17;
+    123.30.64.0/20;
+    37.8.0.0/20;
+    5.63.32.0/19;
+    78.135.16.0/22;
+    5.11.44.0/22;
+    82.205.16.0/20;
+    195.154.150.32;
+    88.243.0.0/17;
+    78.214.104.0/24;
+};

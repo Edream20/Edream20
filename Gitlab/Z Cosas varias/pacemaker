@@ -1,0 +1,56 @@
+node 168431381: pisco \
+	attributes standby=off maintenance=off
+node 168431382: pantaleon \
+	attributes standby=off maintenance=off
+primitive ClusterPortaVLAN103 IPaddr2 \
+	params ip=179.0.14.33 nic="vlan103:1" cidr_netmask=24 broadcast=179.0.14.255 \
+	op monitor interval=1
+primitive ClusterQuaggaLAM lsb:quagga \
+	op monitor interval=30 \
+	op stop timeout=60s interval=0 \
+	meta target-role=Started
+primitive ClusterRouteVLAN103Default Route \
+	params destination=default gateway=179.0.14.1 device=mvpublic family=ip4 \
+	op monitor interval=10 \
+	op_params trace_ra=1 \
+	meta target-role=Started
+primitive ClusterRouteVLAN103SRC Route \
+	params destination="179.0.14.0/24" device=mvpublic source=179.0.14.1 table=table103 family=ip4 \
+	op monitor interval=10 \
+	meta target-role=Started
+primitive ClusterVLAN100IP IPaddr2 \
+	params ip=10.10.15.25 nic=mvinternal cidr_netmask=24 broadcast=10.10.15.255 \
+	op monitor interval=1 \
+	meta target-role=Started
+primitive ClusterVLAN103IP IPaddr2 \
+	params ip=179.0.14.25 nic=vlan103 cidr_netmask=24 broadcast=179.0.14.255 \
+	op monitor interval=1
+primitive ClusterVLAN400IPNS IPaddr2 \
+	params ip=10.10.30.40 nic=vlan400 network_namespace=ns_yachay cidr_netmask=24 broadcast=10.10.30.255 \
+	op monitor interval=1 \
+	meta target-role=Started
+primitive ClusterVLAN107NS_YACHAY IPaddr2 \
+	params ip=209.45.18.1 nic=vlan107 network_namespace=ns_yachay cidr_netmask=24 broadcast=209.45.18.255 \
+	op monitor interval=1 \
+	meta target-role=Started
+primitive ClusterVLAN1274NS_YACHAY IPaddr2 \
+	params ip=10.10.30.40 nic=vlan1274 network_namespace=ns_yachay cidr_netmask=24 broadcast=10.10.30.255 \
+	op monitor interval=1 \
+	meta target-role=Started
+primitive ClusterVLAN803NS_YACHAY2 IPaddr2 \
+	params ip=10.10.30.40 nic=vlan803 network_namespace=ns_yachay2 cidr_netmask=24 broadcast=10.10.30.255 \
+	op monitor interval=1 \
+	meta target-role=Started
+group ClusterIPSet ClusterQuaggaLAM ClusterVLAN100IP ClusterVLAN103IP ClusterPortaVLAN103 ClusterVLAN400IPNS \
+	meta resource-stickiness=2000
+order ClusterRouteOrder inf: ClusterIPSet ( ClusterRouteVLAN103SRC ClusterRouteVLAN103Default )
+colocation ClusterRoutesColocNO -inf: ClusterRouteVLAN103Default ClusterIPSet
+colocation ClusterVLAN103SRC-alwayswithIP inf: ClusterRouteVLAN103SRC ClusterIPSet
+property cib-bootstrap-options: \
+	have-watchdog=false \
+	dc-version=2.0.3-4b1f869f0f \
+	stonith-enabled=false \
+	no-quorum-policy=ignore \
+	cluster-infrastructure=corosync \
+	maintenance-mode=false \
+	cluster-name=hakase-cluster

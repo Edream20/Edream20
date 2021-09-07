@@ -1,0 +1,220 @@
+#Interface Loopback
+auto lo
+iface lo inet loopback
+
+#Interfaz Bonding
+#auto bond0
+#iface bond0 inet manual
+#	slaves eth0
+
+
+auto eth0
+iface eth0 inet static
+#        address 190.216.120.122
+#	netmask 255.255.255.248
+#        network 190.216.120.120
+#	gateway 190.216.120.121
+#	broadcast 190.216.120.127
+#	dns-nameservers 8.8.8.8
+
+auto eth1
+iface eth1 inet manual
+        bond-master bond0
+        bond-primary eth1 eth2
+
+auto eth2
+iface eth2 inet manual
+        bond-master bond0
+        bond-primary eth1 eth2
+
+auto bond0
+iface bond0 inet manual
+        bond-mode active-backup
+        bond-miimon 100
+        slaves eth1 eth2
+
+auto vlan100
+iface vlan100 inet static
+	address 10.10.15.1
+	netmask 255.255.255.0
+	network 10.10.15.0
+	broadcast 10.10.15.255
+	mtu 1500
+	vlan_raw_device bond0
+	pre-up ipset -exist restore  < /etc/ipset.rules
+	pre-up iptables-restore < /etc/iptables.rules
+
+# La de ANURA
+auto vlan103
+iface vlan103 inet static
+	address 179.0.14.1
+	netmask 255.255.255.0
+	network 179.0.14.0
+	broadcast 179.0.14.255
+	mtu 1500
+	vlan_raw_device bond0
+
+
+# Anura Virtual for Porta IPSec
+auto vlan103:1
+iface vlan103:1 inet static
+        address 179.0.14.19
+        netmask 255.255.255.0
+        network 179.0.14.0
+        broadcast 179.0.14.255
+        mtu 1500
+        vlan_raw_device bond0
+        # Up rule
+        up ip rule add to 190.81.190.248 lookup table103 prio 100
+        up ip rule add to 190.119.230.68 lookup table103 prio 100
+        # Up route
+        up ip route add 190.81.190.248 via 190.216.120.121 src 179.0.14.19 table table103
+        up ip route add 190.119.230.68 via 190.216.120.121 src 179.0.14.19 table table103
+        # Del route
+        up ip route del 190.81.190.248 via 190.216.120.121 src 179.0.14.19 table table103
+        up ip route del 190.119.230.68 via 190.216.120.121 src 179.0.14.19 table table103
+        # Del rule
+        up ip rule del to 190.81.190.248 lookup table203 prio 100
+        up ip rule del to 190.119.230.68 lookup table203 prio 100
+
+auto vlan111
+#WAN para TDP
+iface vlan111 inet static
+	address 172.22.63.14
+	netmask 255.255.255.252
+	network 172.22.63.12
+	broadcast 172.22.63.15
+	mtu 1500
+	vlan_raw_device bond0
+
+#WAN Primaria Yachay
+auto vlan1275
+# VLAN 1275
+iface vlan1275 inet static
+        address 172.20.43.190
+        netmask 255.255.255.252
+        network 172.20.43.188
+        broadcast 172.20.43.191
+        mtu 1500
+        vlan_raw_device bond0
+        # Up rule
+	up ip rule add from 172.20.43.190/30 table table1275 prio 12750
+	## Agrego peer
+        up ip route add 161.132.10.75 via 172.20.43.189 dev vlan1275  src 172.20.43.190
+        up ip route add 161.132.10.75 via 172.20.43.189 dev vlan1275  src 172.20.43.190 table table1275
+	up ip route add 161.132.1.0/24 via 172.20.43.189 dev vlan1275  src 172.20.43.190 table table1275
+	# DOWN rule
+	down ip rule del from 172.20.43.190/30 table table1275 prio 12750
+	## DOWN routes
+        down ip route del 161.132.10.75 via 172.20.43.189 dev vlan1275  src 172.20.43.190
+	down ip route del 161.132.10.75 via 172.20.43.189 dev vlan1275  src 172.20.43.190 table table1275
+	down ip route del 161.132.1.0/24 via 172.20.43.189 dev vlan1275  src 172.20.43.190 table table1275
+
+
+#WAN Secundaria Yachay
+auto vlan826
+# VLAN 826
+iface vlan826 inet static
+        address 172.20.36.19
+        netmask 255.255.255.248
+        network 172.20.36.16
+        broadcast 172.20.36.23
+        mtu 1500
+        vlan_raw_device bond0
+        ## ADD RULE
+	up ip rule add from 172.20.36.19/29 table table826 prio 8260
+	## Agrego peer
+        up ip route add 161.132.10.7 via 172.20.36.17 dev vlan826  src 172.20.36.19
+        up ip route add 161.132.10.7 via 172.20.36.17 dev vlan826  src 172.20.36.19 table table826
+        up ip route add 161.132.1.0/24 via 172.20.36.17 dev vlan826  src 172.20.36.19 table table826
+	## DOWN RULE
+	down ip rule del from 172.20.36.19/29 table table826 prio 8260
+	## DOWN routes
+        down ip route del 161.132.10.7 via 172.20.36.17 dev vlan826  src 172.20.36.19
+	down ip route del 161.132.10.7 via 172.20.36.17 dev vlan826  src 172.20.36.19 table table826
+        down ip route del 161.132.1.0/24 via 172.20.36.17 dev vlan826  src 172.20.36.19 table table826
+
+##GRE a San Isidro por TDP##
+auto gre_tdp_lam
+iface gre_tdp_lam inet static
+        address 192.168.50.37
+        netmask 255.255.255.252
+        pre-up iptunnel add gre_tdp_lam mode gre local 179.0.14.1 remote 200.107.148.145 key 1
+        up ifconfig gre_tdp_lam multicast
+        pointopoint 192.168.50.38
+        post-down iptunnel del gre_tdp_lam
+## ADD RULE
+up ip rule add from 179.0.14.1 to 200.107.148.152 iif lo lookup table103 prio 402
+## DOWN RULE
+down ip rule del from 179.0.14.1 to 200.107.148.152 iif lo lookup table103 prio 402
+
+# Tunel La Molina-SUI
+
+auto bufo_huayna_tdp
+iface bufo_huayna_tdp inet static
+        address 192.168.50.30
+        netmask 255.255.255.252
+        pre-up iptunnel add bufo_huayna_tdp mode gre local 179.0.14.1 remote 186.56.20.177 key 1
+        up ifconfig bufo_huayna_tdp multicast
+        pointopoint 192.168.50.29
+        post-down iptunnel del bufo_huayna_tdp
+## ADD RULE
+up ip rule add from 179.0.14.1 to 186.56.20.177 iif lo lookup table103 prio 102
+## DOWN RULE
+down ip rule del from 179.0.14.1 to 186.56.20.177 iif lo lookup table103 prio 102
+### Esm-Lam(por tdp)
+auto gre_esm_tdplam
+iface gre_esm_tdplam inet static
+        address 192.168.50.34
+        netmask 255.255.255.252
+        pre-up iptunnel add gre_esm_tdplam mode gre local 179.0.14.1 remote 186.38.20.49 key 1
+        up ifconfig gre_esm_tdplam multicast
+        pointopoint 192.168.50.33
+        post-down iptunnel del gre_esm_tdplam
+## ADD RULE
+up ip rule add from 179.0.14.1 to 186.38.20.49 iif lo lookup table103 prio 401
+## DOWN RULE
+down ip rule del from 179.0.14.1 to 186.38.20.49 iif lo lookup table103 prio 401
+
+auto vlan209
+## Loopback para Portabilidad
+iface vlan209 inet static
+        address 10.209.14.6
+        netmask 255.255.255.128
+        network 10.209.14.0
+        broadcast 10.209.14.127
+        mtu 1500
+        vlan_raw_device bond0
+        ## IFUP
+        up ip route add default via 10.209.14.6 dev vlan209 table table209
+        up ip route add 10.209.14.0/25 dev vlan209 src 10.209.14.6 table table209
+        up ip route add 10.117.1.0/24 dev vlan209 src 10.209.14.6 table table209
+        ## RULE UP
+        up ip rule add from 10.209.14.6 lookup table209 prio 209
+	up ip rule add to 10.117.1.0/24 lookup table209 prio 300
+        ## IFDOWN
+        down ip route del default via 10.209.14.6 dev vlan209 table table209
+        down ip route del 10.209.14.0/25 dev vlan209 src 10.209.14.6 table table209
+        down ip route del 10.117.1.0/24 dev vlan209 src 10.209.14.6 table table209
+        ## RULE DOWN
+        down ip rule del from 10.209.14.6 lookup table209 prio 209
+	down ip rule del to 10.117.1.0/24 lookup table209 prio 300
+
+
+##########################################################################################################
+## Tunel iBGP - LA MOLINA (TDP) - TACUARI (METRO)
+## IP local: 192.168.50.22 - IP remota: 192.168.50.21
+auto gre_tac_lam_tdp
+iface gre_tac_lam_tdp inet static
+        address 192.168.50.22
+        netmask 255.255.255.252
+        pre-up iptunnel add gre_tac_lam_tdp mode gre local 179.0.14.1 remote 190.104.254.146 key 1
+        up ifconfig gre_tac_lam_tdp multicast
+        pointopoint 192.168.50.21
+        post-down iptunnel del gre_tac_lam_tdp
+## ADD RULE
+up ip rule add from 179.0.14.1 to 190.104.254.146 iif lo lookup table103 prio 104
+## DOWN RULE
+down ip rule del from 179.0.14.1 to 190.104.254.146 iif lo lookup table103 prio 104
+##
+##########################################################################################################

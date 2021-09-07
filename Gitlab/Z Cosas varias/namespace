@@ -1,0 +1,101 @@
+# !/bin/bash
+# /lib/ifupdown/ns_up.sh
+
+#Configuracion Manual NameSpace, VLANs y rutas:
+
+
+# Creacion de los Links
+ip link add link bond0 name vlan107 type vlan id 107
+ip link add link bond0 name vlan803 type vlan id 803
+ip link add link bond0 name vlan1274 type vlan id 1274
+ip link add vethdftl type veth peer name vethychy
+ip link add vethychy1 type veth peer name vethychy2
+
+# Creacion del NameSpace
+ip netns add ns_yachay
+ip netns add ns_yachay2
+
+# Asignacion del namespace a los links
+ip link set vlan107 netns ns_yachay
+ip link set vethychy netns ns_yachay
+ip link set vlan1274 netns ns_yachay
+ip link set vlan803 netns ns_yachay2
+ip link set vethychy1 netns ns_yachay
+ip link set vethychy2 netns ns_yachay2
+
+# Asignacion de las Direcciones de IP a los Link (VLAN) dentro del namespace
+ip netns exec ns_yachay ip addr add 209.45.18.1/24 dev vlan107
+ip netns exec ns_yachay ip addr add 172.20.43.126/30 dev vlan1274
+ip netns exec ns_yachay2 ip addr add 172.20.13.59/29 dev vlan803
+
+# configuracion de las direcciones de ip del link que interconecta los namespace
+ip addr add 192.168.100.1/30 dev vethdftl
+ip netns exec ns_yachay ip addr add 192.168.100.2/30 dev vethychy
+ip netns exec ns_yachay ip addr add 192.168.100.5/30 dev vethychy1
+ip netns exec ns_yachay2 ip addr add 192.168.100.6/30 dev vethychy2
+
+# Levantamos el link en el NameSpace default
+ip link set vethdftl up
+
+# levantamos los links dentro del namespace ns_yachay
+ip netns exec ns_yachay ip link set dev vlan107 up
+ip netns exec ns_yachay ip link set dev vlan1274 up
+ip netns exec ns_yachay ip link set dev vethychy up
+ip netns exec ns_yachay ip link set dev vethychy1 up
+
+# levantamos los links dentro del namespace ns_yachay2
+ip netns exec ns_yachay2 ip link set dev vlan803 up
+ip netns exec ns_yachay2 ip link set dev vethychy2 up
+
+# configuramos el ruteo entre los namespace
+ip route add 209.45.18.0/24 via 192.168.100.2
+ip route add 172.20.43.124/30 via 192.168.100.2
+ip netns exec ns_yachay ip route add 179.0.14.0/24 via 192.168.100.1
+
+# configuramos la ruta para que el namespace ns_yachay alcance al peer de bgp 161.132.10.16
+ip netns exec ns_yachay ip route add 161.132.10.16/32 via 172.20.43.125
+ip netns exec ns_yachay2 ip route add 161.132.10.16/32 via 172.20.13.57
+
+# agregado de rule y routes
+ip netns exec ns_yachay ip rule add from 172.20.43.126/30 table table1274 prio 12740
+ip netns exec ns_yachay ip route add 161.132.10.16/32 via 172.20.43.125 dev vlan1274  src 172.20.43.126 table table1274
+ip netns exec ns_yachay2 ip rule add from 172.20.13.59/29 table table803 prio 8030
+ip netns exec ns_yachay2 ip route add 161.132.10.16/32 via 172.20.13.57 dev vlan803  src 172.20.13.59 table table803
+
+## Tunel iBGP - LA MOLINA (YACHAY) - TACUARI (METRO)
+## IP local: 192.168.50.42 - IP remota: 192.168.50.41
+ip netns exec ns_yachay ip tunnel add gre_tac_lam_yac mode gre local 209.45.18.1 remote 190.104.254.146 key 1
+ip netns exec ns_yachay ip link set gre_tac_lam_yac up
+ip netns exec ns_yachay ip addr add 192.168.50.42/30 dev gre_tac_lam_yac peer 192.168.50.41
+
+## Tunel iBGP - LA MOLINA (YACHAY) - SUIPACHA (TASA)
+## IP local: 192.168.50.46 - IP remota: 192.168.50.45
+ip netns exec ns_yachay ip tunnel add gre_sui_lam_yac mode gre local 209.45.18.1 remote 186.56.20.177 key 1
+ip netns exec ns_yachay ip link set gre_sui_lam_yac up
+ip netns exec ns_yachay ip addr add 192.168.50.46/30 dev gre_sui_lam_yac peer 192.168.50.45
+
+## Tunel iBGP - LA MOLINA (YACHAY) - ESNERALDA (TASA)
+## IP local: 192.168.50.50 - IP remota: 192.168.50.49
+ip netns exec ns_yachay ip tunnel add gre_esm_lam_yac mode gre local 209.45.18.1 remote 186.38.20.49 key 1
+ip netns exec ns_yachay ip link set gre_esm_lam_yac up
+ip netns exec ns_yachay ip addr add 192.168.50.50/30 dev gre_esm_lam_yac peer 192.168.50.49
+
+## Tunel iBGP - LA MOLINA (YACHAY) - SAN ISIDRO (TDP)
+## IP local: 192.168.50.54 - IP remota: 192.168.50.53
+ip netns exec ns_yachay ip tunnel add gre_lim_lam_yac mode gre local 209.45.18.1 remote 200.107.148.145 key 1
+ip netns exec ns_yachay ip link set gre_lim_lam_yac up
+ip netns exec ns_yachay ip addr add 192.168.50.54/30 dev gre_lim_lam_yac peer 192.168.50.53
+
+#agregado de rutas para alcanzar el next hop
+ip route add 192.168.50.40/30 via 192.168.100.2
+ip route add 192.168.50.44/30 via 192.168.100.2
+ip route add 192.168.50.48/30 via 192.168.100.2
+ip route add 192.168.50.52/30 via 192.168.100.2
+
+# aplicamos la configuracion de iptables para el namespace ns_yachay
+ip netns exec ns_yachay ipset -exist restore  < /etc/ipset.rules
+ip netns exec ns_yachay iptables-restore < /etc/iptables_ns_yachay.rules
+
+# aplicamos la configuracion de iptables para el namespace ns_yachay2
+ip netns exec ns_yachay2 ipset -exist restore  < /etc/ipset.rules
+ip netns exec ns_yachay2 iptables-restore < /etc/iptables_ns_yachay2.rules

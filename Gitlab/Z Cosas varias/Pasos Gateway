@@ -1,0 +1,400 @@
+1 -           ####          Consultar en el FSTC la cantidad de llamadas activas       ####
+
+# MANCO
+
+/home/astg/local/freeswitch/bin/fs_cli -x "show calls"
+
+ansible all -i inv/external_pe.yml -l manco -bK -m shell -a '/home/astg/local/freeswitch/bin/fs_cli -l0 -x "show calls"|grep total' 2>/dev/null
+
+# PASTORURI Y ALPAMAYO
+
+ansible all -i inv/external_pe.yml -l alpamayo,pastoruri -bK -m shell -a 'docker exec -it fstc_freeswitch_1 /home/astg/local/freeswitch/bin/fs_cli -l0 -x "show calls"|grep total' 2>/dev/null
+
+
+2 -           ####               TAPAR NAGIOS            ####
+ 
+
+
+3 -           ####       BLOQUEAR Trunks TDP Perú        ####
+
+
+psql -p 5532 -h dbgclam.internal.anura.pe gc gc
+
+gc=> SELECT * from trunks where name like '%TDP%';
+  id  |     name     |      tech      |           path            | numberretries | retrytimeout | minbillseconds | adminstatus | operstatus | didactive | subscribercategory
+------+--------------+----------------+---------------------------+---------------+--------------+----------------+-------------+------------+-----------+--------------------
+ 1011 | TDPLDN       | sofia/internal | manco.lim.anura.pe:55080  |             3 |         8000 |              1 |           1 |          1 | t         |                  1
+ 1010 | TDPLOCAL     | sofia/internal | manco.lim.anura.pe:55080  |             3 |         8000 |              1 |           1 |          1 | t         |                  1
+ 1012 | TDPLOCAL_LAM | sofia/internal | fstc-out-lam.lim.anura.pe |             1 |         8000 |              1 |           1 |          1 | t         |                  1
+(3 rows)
+
+Query bajar   Bajar los Trunks
+
+UPDATE trunks SET adminstatus = 0 , operstatus = 0 WHERE name ILIKE 'TDP%';
+
+
+
+
+4 -          ####         Verificar Estado del MTP     ####
+ 
+#HUASCARAN
+
+## Consulta Status link
+
+/home/astg/local/mtp3d/bin/mtp3cli -h 179.0.14.2 -p 6000 link status
+
+
+#INCA
+
+## Consulta Status link
+
+/home/astg/local/mtp3dngn/bin/mtp3cli -h  200.107.148.147  -p 6000 link status
+
+
+5 -                   ####     Verificamos las SCTP assoc      ####
+
+
+# MANCO INCA HUASCARAN
+
+cat /proc/net/sctp/assocs
+
+
+6 -                   #### Verificar lamadas en los asterisk   ####
+
+# MANCO INCA HUSACARAN
+
+Nos logueamos como astg.
+
+/home/astg/local/asterisklo1/sbin/rasterisk -qm
+
+Ingresamos a la cli del asterisk, y hacemos un core show calls
+
+
+7 -         #### Consulta llamadas asterisk, bloqueo de circuitos, verificar cic bloqueados, bajar instancia asterisk y mtp   ####
+
+# HUASCARAN
+
+
+Verificamos las llamadas activas
+
+core show calls
+
+## Bloquear los circuitos
+
+a) - Bloquear los Circuitosde las Tramas
+
+
+ss7 block 1 31
+
+ss7 block 33 31
+
+ss7 block 65 31
+
+ss7 block 17 15
+
+
+b) - ss7 linestat (Verificar que este todo bloqueado)
+
+
+
+c) - Bajamos la instancia del Asterisk
+como root
+
+/etc/init.d/astg-asterisklo1 stop
+
+
+d) Bajamos el MTP
+
+/home/astg/local/mtp3d/bin/mtp3cli -h 179.0.14.2 -p 6000 link down
+
+/etc/init.d/astg-mtp3d stop
+
+e) Verificar con un ps aux que los procesos del asterisk esten abajo y tambien del mtp
+
+ps aux | grep astg | grep asterisk
+
+
+#  MANCO
+
+Verificamos las llamadas activas
+
+core show calls
+
+a)
+
+ss7 block 33 31
+
+b)
+
+ss7 linestat (Verificar que este todo bloqueado)
+
+c)
+
+/etc/init.d/astg-asterisklo1 stop
+
+e) Verificar con un ps aux que los procesos del asterisk esten abajo
+
+
+# INCA
+
+Verificamos las llamadas activas
+
+a)
+
+ss7 block 1 15
+
+ss7 block 17 31
+
+ss7 block 65 31
+
+ss7 block 97 31
+
+b)
+
+ss7 linestat (Verificar que este todo bloqueado)
+
+c)
+
+/etc/init.d/astg-asteriskngn stop
+
+d)
+
+/home/astg/local/mtp3dngn/bin/mtp3cli -h  200.107.148.147  -p 6000 link down
+
+
+/etc/init.d/astg-mtp3dngn stop
+
+8 -      ### Verificar que los procesos no esten corriendo mtp asterisk ####
+
+ps aux | grep astg | grep aster
+
+ps aux | grep astg
+
+
+9 -      ####   Copiar como astg  (Huascaran, Manco e Inca)  ####
+ 
+a) Estar logueado como astg
+
+cp /tmp/ss7.conf a ~/local/common
+
+
+##Anotaciones.
+
+
+Procesos astg Asterisk INCA
+
+root@inca:/home/citilan# su - astg
+astg@inca:~$ ps aux | grep aster
+astg      1538  7.2  0.5 4692332 46472 pts/2   Sl   Sep22 9072:26 /home/astg/local/asteriskngn/sbin/asterisk -g -g -f -C /home/astg/local/asteriskngn/etc/asterisk/asterisk.conf
+astg      2622  0.4  0.3 3043992 25556 ?       Ssl  Dec17   8:38 /home/astg/local/asterisk11/sbin/asterisk -g
+astg     10030  0.0  0.0   9636   940 pts/0    S+   12:53   0:00 grep --color=auto aster
+astg     30058  9.3  0.0  93432  2344 ?        Ssl  Sep22 11652:32 /home/astg/local/mtp3dngn/bin/mtp3d -p -f -d -s incangn -c /home/astg/local/mtp3dngn/etc/asterisk
+astg     30792  0.0  0.0  12600  1032 pts/2    S    Sep22   0:00 /bin/bash /home/astg/local/asteriskngn/sbin/safe_asterisk.mod -g
+
+astg@inca:/etc/init.d$ ps aux | grep astg
+astg      1538  7.2  0.5 4692332 46472 pts/2   Sl   Sep22 9080:34 /home/astg/local/asteriskngn/sbin/asterisk -g -g -f -C /home/astg/local/asteriskngn/etc/asterisk/asterisk.conf
+astg      2622  0.4  0.3 3043992 25556 ?       Ssl  Dec17   8:49 /home/astg/local/asterisk11/sbin/asterisk -g
+astg      3605  0.0  0.0  18404  1276 pts/0    R+   13:45   0:00 ps aux
+astg      3606  0.0  0.0   9636   940 pts/0    S+   13:45   0:00 grep --color=auto astg
+astg      5207  0.0  0.0  43148  1496 pts/3    S    Sep15   0:00 su - astg
+astg      5208  0.0  0.1  28292  9352 pts/3    S+   Sep15   0:00 -su
+astg      9572  0.0  0.0  43120  1444 pts/11   S    Nov18   0:00 su - astg
+astg      9573  0.0  0.1  28188  9240 pts/11   S+   Nov18   0:00 -su
+astg      9910  0.0  0.0  43148  1536 pts/0    S    12:53   0:00 su - astg
+astg      9911  0.0  0.1  28156  9216 pts/0    S    12:53   0:00 -su
+astg     10919  0.0  0.0  43148  1536 pts/6    S    Dec17   0:00 su - astg
+astg     10920  0.0  0.1  28284  9320 pts/6    S+   Dec17   0:00 -su
+astg     11641  0.1  0.3 1664176 25256 ?       S<l  Dec14   8:35 /home/astg/local/freeswitch/bin/freeswitch -nc -nonat -core -rp
+astg     24526  0.0  0.1 124560 11532 ?        S    Sep15  12:51 python send_cdrs.py
+astg     30058  9.3  0.0  93432  2344 ?        Ssl  Sep22 11657:41 /home/astg/local/mtp3dngn/bin/mtp3d -p -f -d -s incangn -c /home/astg/local/mtp3dngn/etc/asterisk
+astg     30792  0.0  0.0  12600  1032 pts/2    S    Sep22   0:00 /bin/bash /home/astg/local/asteriskngn/sbin/safe_asterisk.mod -g
+
+Procesos astg Asterisk Manco
+
+root@manco:/home/citilan# ps aux | grep astg | grep aster
+astg      3523  0.0  0.0  12352   644 ?        S    Sep14   0:00 /bin/bash /home/astg/local/asterisklo1/sbin/safe_asterisk.mod -g
+astg      3524  1.1  0.2 4560580 23356 ?       Sl   Sep14 1503:50 /home/astg/local/asterisklo1/sbin/asterisk -g -g -f -C /home/astg/local/asterisklo1/etc/asterisk/asterisk.conf
+
+astg@manco:/etc/init.d$ ps aux | grep astg
+astg      2024  0.0  0.0  53588  1688 pts/7    S    Sep25   0:00 su - astg
+astg      2027  0.0  0.0  23852  4884 pts/7    S+   Sep25   0:00 -su
+astg      3006  0.0  0.0  18156  1264 pts/0    R+   13:45   0:00 ps aux
+astg      3007  0.0  0.0   9388   928 pts/0    S+   13:45   0:00 grep astg
+astg      3523  0.0  0.0  12352   644 ?        S    Sep14   0:00 /bin/bash /home/astg/local/asterisklo1/sbin/safe_asterisk.mod -g
+astg      3524  1.1  0.2 4560580 23356 ?       Sl   Sep14 1504:58 /home/astg/local/asterisklo1/sbin/asterisk -g -g -f -C /home/astg/local/asterisklo1/etc/asterisk/asterisk.conf
+astg      6547  0.0  0.0  53588  1732 pts/4    S    08:52   0:00 su - astg
+astg      6550  0.0  0.0  23816  5088 pts/4    S+   08:52   0:00 -su
+astg     11609  0.0  0.0  53588  1688 pts/1    S    Sep14   0:00 su - astg
+astg     11612  0.0  0.0  24852  5932 pts/1    S+   Sep14   0:01 -su
+astg     11971  0.0  0.1 122636 11976 ?        S    Sep14   8:15 python send_cdrs.py
+astg     13742  9.9  0.7 4381480 63628 ?       S<l  Dec14 610:55 /home/astg/local/freeswitch/bin/freeswitch -nc -nonat -core
+astg     30635  0.0  0.0  53588  1732 pts/0    S    13:28   0:00 su - astg
+astg     30638  0.0  0.0  23748  5056 pts/0    S    13:28   0:00 -su
+
+astg@huascaran:/etc/init.d$ ps aux | grep astg
+astg      2267  0.0  0.0  42908  1444 pts/6    S    Oct06   0:00 su - astg
+astg      2268  0.0  0.1  27904  8932 pts/6    S+   Oct06   0:00 -su
+astg      4257  0.2  0.3 2018676 28312 ?       S<l  Dec14  13:28 /home/astg/local/freeswitch/bin/freeswitch -nc -nonat -core
+astg      5113  1.2  0.0  93436  2444 ?        Ssl  Oct06 1311:27 /home/astg/local/mtp3d/bin/mtp3d -p -f -d -s huascaranlo1 -c /home/astg/local/mtp3d/etc/asterisk
+astg     14128  0.0  0.0  42880  1384 pts/1    S    Nov19   0:00 su - astg
+astg     14129  0.0  0.1  27904  8916 pts/1    S+   Nov19   0:00 -su
+astg     18217  0.0  0.0  42908  1524 pts/0    S    13:29   0:00 su - astg
+astg     18218  0.0  0.1  27880  9164 pts/0    S    13:29   0:00 -su
+astg     18722  0.0  0.0  18164  1272 pts/0    R+   13:44   0:00 ps aux
+astg     18723  0.0  0.0   9400   948 pts/0    S+   13:44   0:00 grep --color=auto astg
+astg     20719  0.0  0.0  42908  1468 pts/4    S    Dec11   0:00 su - astg
+astg     20720  0.0  0.1  27916  8988 pts/4    S+   Dec11   0:00 -su
+astg     24535  0.0  0.0  42908  1524 pts/3    S    Dec17   0:00 su - astg
+astg     24536  0.0  0.1  27920  9212 pts/3    S+   Dec17   0:00 -su
+astg     27228  0.0  0.1 122656 11840 ?        S    Oct06   6:57 python ./send_cdrs.py
+astg     27993  0.0  0.0  12356   852 pts/1    S    Oct06   0:00 /bin/bash /home/astg/local/asterisklo1/sbin/safe_asterisk.mod -g
+astg     28533  3.6  0.6 4665052 55420 pts/1   Sl   Oct06 3868:12 /home/astg/local/asterisklo1/sbin/asterisk -g -g -f -C /home/astg/local/asterisklo1/etc/asterisk/asterisk.conf
+
+astg@huascaran:/etc/init.d$ ps aux | grep astg | grep asterisk
+astg      5113  1.2  0.0  93436  2444 ?        Ssl  Oct06 1311:28 /home/astg/local/mtp3d/bin/mtp3d -p -f -d -s huascaranlo1 -c /home/astg/local/mtp3d/etc/asterisk
+astg     18795  0.0  0.0   9396   944 pts/0    S+   13:44   0:00 grep --color=auto asterisk
+astg     27993  0.0  0.0  12356   852 pts/1    S    Oct06   0:00 /bin/bash /home/astg/local/asterisklo1/sbin/safe_asterisk.mod -g
+astg     28533  3.6  0.6 4665052 55440 pts/1   Sl   Oct06 3868:14 /home/astg/local/asterisklo1/sbin/asterisk -g -g -f -C /home/astg/local/asterisklo1/etc/asterisk/asterisk.conf
+
+
+## SUBIMOS
+
+
+## INCA
+
+
+#MTP
+
+Levantamos el proceso del mtp
+
+/etc/init.d/astg-mtp3dngn start
+
+Comprobamos que este arriba
+
+/home/astg/local/mtp3dngn/bin/mtp3cli -h  200.107.148.147  -p 6000 link status
+
+En caso de que este abajo lo levantamos manualmente
+
+/home/astg/local/mtp3dngn/bin/mtp3cli -h  200.107.148.147  -p 6000 link up
+
+#Asterisk
+
+/etc/init.d/astg-asteriskngn start
+
+Verificar que los procesos del usuario astg esten arriba.
+
+ps aux | grep astg
+
+Ingresamos a la cli
+
+/home/astg/local/asteriskngn/sbin/rasterisk -qm
+
+Hacemos
+
+ss7 linestat para corroborar que los circuitos este narriba
+
+
+
+## MANCO
+
+Levantamos el asterisk
+
+/etc/init.d/astg-asterisklo1 start
+
+ss7 linestat (Verificar que no este bloqueado)
+
+Verificar los procesos que estan arriba 
+
+ps aux | grep astg
+
+
+# HUASCARAN
+
+Iniciamos el mtp
+
+/etc/init.d/astg-mtp3d start
+
+Verificamos si levanto el status
+
+/home/astg/local/mtp3d/bin/mtp3cli -h 179.0.14.2 -p 6000 link status
+
+Sino levanto, levantamos el link
+
+/home/astg/local/mtp3d/bin/mtp3cli -h 179.0.14.2 -p 6000 link up
+
+Iniciamos el proceso del asterisk
+
+/etc/init.d/astg-asterisklo1 start
+
+Verificamos que no esten bloqueados los circuitos
+
+ss7 linestat (Verificar que no este bloqueado)
+
+Verificar con un ps aux que los procesos del asterisk esten arriba y tambien del mtp
+
+ps aux | grep astg
+
+
+Subir troncales de TDP
+
+
+psql -p 5532 -h dbgclam.internal.anura.pe gc gc
+
+gc=> SELECT * from trunks where name like '%TDP%';
+  id  |     name     |      tech      |           path            | numberretries | retrytimeout | minbillseconds | adminstatus | operstatus | didactive | subscribercategory
+------+--------------+----------------+---------------------------+---------------+--------------+----------------+-------------+------------+-----------+--------------------
+ 1011 | TDPLDN       | sofia/internal | manco.lim.anura.pe:55080  |             3 |         8000 |              1 |           1 |          1 | t         |                  1
+ 1010 | TDPLOCAL     | sofia/internal | manco.lim.anura.pe:55080  |             3 |         8000 |              1 |           1 |          1 | t         |                  1
+ 1012 | TDPLOCAL_LAM | sofia/internal | fstc-out-lam.lim.anura.pe |             1 |         8000 |              1 |           1 |          1 | t         |                  1
+(3 rows)
+
+Query subir los Trunksde TDP
+
+UPDATE trunks SET adminstatus = 1 , operstatus = 1 WHERE name ILIKE 'TDP%';
+
+
+Verificar las llamdas en el fstc (REALZAR LLAMADS DE PRUEBA)
+
+# MANCO
+
+/home/astg/local/freeswitch/bin/fs_cli -x "show calls"
+
+ansible all -i inv/external_pe.yml -l manco -bK -m shell -a '/home/astg/local/freeswitch/bin/fs_cli -l0 -x "show calls"|grep total' 2>/dev/null
+
+# PASTORURI Y ALPAMAYO
+
+ansible all -i inv/external_pe.yml -l alpamayo,pastoruri -bK -m shell -a 'docker exec -it fstc_freeswitch_1 /home/astg/local/freeswitch/bin/fs_cli -l0 -x "show calls"|grep total' 2>/dev/null
+
+
+Verificar llamadas en los asterisk
+
+ss7 linestat
+
+y core show calls
+
+
+
+ Levantamos el asterisk de Pichu
+
+ /etc/init.d/astg-asterisklo1 start
+
+Verificamos que se le vanto OK
+
+ ps aux | grep astg | grep asterisk
+
+ Ingresamos a la cli
+
+ /home/astg/local/asterisklo1/sbin/rasterisk -qm
+
+ Hacemos las siguintes pruebas
+
+
+ ss7 linestat
+
+ Comrpboamos de bloquear circuitos y desbloquear para ver que este todo OK
+ 
+
+ Verificar en cada host (inca, huascaran, pichu y manco) /proc/net/sctp/assocs. Cada AST tiene dos conexiones, una a cada MTP3D.
+
+
+ DESTAPAMOS EL NAGIOS
